@@ -25,3 +25,5 @@ Each column is of the form "mean._feature type_._function_._direction_".
 - _feature type_ - This refers to the feature that performed the measurement
 - _function_ - This refers to the calculation function used, either mean or std (for standard deviation)
 - _direction_ - This refers to the direction (if applicable) and will be the X, Y, or Z axis
+
+For example: "mean.fBodyGyro.mean.X" refers to the mean of the means of fBodyGyro calculations on the X axis.
