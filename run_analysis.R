@@ -9,7 +9,7 @@ library(dplyr)
 ## pull_dataset loads in the data from a directory and the subdirectory set
 ## assumes that directory will contain X, y and subject data text files
 
-pull_dataset <- function(directory, set) {
+function(directory, set) {
   ## directory is a string of the folder containing the dataset information
   ## set is the subdirectory of folder containing the variable observations
   
@@ -37,8 +37,8 @@ pull_dataset <- function(directory, set) {
 ## 4. Labels the variables
 ## 5. Creates a tidy dataset with the average of each variable for each activity and each subject
 
-run_analysis <- function(directory) {
-
+function(directory) {
+  
   ## pull in the test dataset
   testdata <- pull_dataset(directory, 'test')
   
@@ -50,12 +50,43 @@ run_analysis <- function(directory) {
   
   ## pull in the features information for column labels from 'features.txt' in directory
   ## assumes that the column names will be in the second column of the file
-
+  
   features <- read.table(paste0(directory,'/features.txt'))
+  
+  ## convert names to characters
+  colnames <- make.names(as.character(features$V2))
+  
+  ## determine indices of mean and std dev columns
+  ## ignoring the meanFreq column
+  meanstdevcolnums <- setdiff(grep("mean|std", colnames), grep("meanFreq", colnames))
+  
+  ## calculate subset columns taking the subject, activity and the indices (offset by 2)
+  subsetcolnums <- c(1, 2, meanstdevcolnums+2)
+  
+  ## subset the data
+  meanstdevdata <- fulldata[,subsetcolnums]
   
   ## add names to all columns, knowing SubjectID is first and ActivityID is second
   ## with names loaded from features as the rest of the names
-  names(fulldata) <- c('SubjectID', 'ActivityID', as.character(features$V2))
+  names(meanstdevdata) <- c('SubjectID', 'ActivityID', colnames[meanstdevcolnums])
   
-  fulldata
+  ## load in activity labels
+  activitylabels <- read.table(paste0(directory, '/activity_labels.txt'), quote="\"")
+  names(activitylabels) <- c("ActivityID","ActivityName")
+  
+  ## Join activity information to main dataset
+  meanstdevdata <- join(meanstdevdata, activitylabels)
+  
+  ## reorder to replace ID with Name (last column replaces col 2)
+  meanstdevdata <- meanstdevdata[, c(1, length(meanstdevdata), 3:(length(meanstdevdata)-1))]
+  
+  ## group by SubjectID and ActivityName, then summarize each column using mean
+  summary_data <- meanstdevdata %>% group_by(SubjectID, ActivityName) %>% summarise_each(funs(mean))
+  
+  ##
+  names(summary_data)[3:length(summary_data)] <- sapply(names(summary_data)[3:length(summary_data)],
+                                                        function(z) paste0('mean.', gsub("..","", z, fixed=T)))
+  
+  summary_data
+  
 }
